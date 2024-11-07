@@ -1,138 +1,135 @@
 import React, { useState } from 'react';
-import Sidebar from '../components/Sidebar'; // Import the Sidebar component
-import Navbar from '../components/Navbar'; // Import the Navbar component
+import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';  // Adjust path as needed
 
 const QueryPage = () => {
-  const [productDetails, setProductDetails] = useState('');
-  const [results, setResults] = useState([]);
+  const [data, setData] = useState({ products: [] });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(''); // State to hold the search query
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const handleSearchChange = (event) => {
+    setSearchQuery(event.target.value); // Update the search query as user types
+  };
+
+  const handleSearchClick = async () => {
     setLoading(true);
-    setResults([]); // Reset previous results
-
+    setError(null);
+  
     try {
-      // Simulate fetching data from APIs (mock data)
-      const mockProcureData = [
-        {
-          name: "Product 1",
-          vendor: "ProcureVendor",
-          price: 1000,
-          vendorReliability: "4.5/5",
-          recommended: true,
-        },
-        {
-          name: "Product 2",
-          vendor: "ProcureVendor",
-          price: 800,
-          vendorReliability: "4.0/5",
-          recommended: false,
-        },
-      ];
-
-      const mockAmazonData = [
-        {
-          name: "Product 3",
-          vendor: "AmazonVendor",
-          price: 1200,
-          vendorReliability: "4.7/5",
-          recommended: true,
-        },
-        {
-          name: "Product 4",
-          vendor: "AmazonVendor",
-          price: 1500,
-          vendorReliability: "4.2/5",
-          recommended: false,
-        },
-      ];
-
-      // Combine mock data from multiple sources (Procure and Amazon)
-      const combinedResults = [...mockProcureData, ...mockAmazonData];
-
-      // Filter results based on the search term (case-insensitive match)
-      const filteredResults = combinedResults.filter((item) =>
-        item.name.toLowerCase().includes(productDetails.toLowerCase())
+      // Scrape data first
+      const searchUrl = `http://localhost:5000/scrape?search=${encodeURIComponent(searchQuery)}`;
+      const scrapeResponse = await fetch(searchUrl);
+      if (!scrapeResponse.ok) {
+        throw new Error('Failed to fetch scraped data');
+      }
+      const scrapeData = await scrapeResponse.json();
+      
+      // Filter out the "Shop on eBay" title
+      const filteredData = scrapeData.products.filter((product) =>
+        !product.title.toLowerCase().includes('shop on ebay'.toLowerCase())
       );
-
-      setResults(filteredResults);
+  
+      // If there is a search query, filter the data based on title or description
+      if (searchQuery) {
+        const searchFilteredData = filteredData.filter((product) =>
+          product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.description.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setData({ products: searchFilteredData });
+      } else {
+        setData({ products: filteredData }); // No search query, just show filtered data
+      }
     } catch (error) {
-      console.error('Error fetching product data:', error);
-      setResults([]);
+      setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleClearSearch = () => {
+    setSearchQuery('');  // Clear the search query
+    setData({ products: [] }); // Optionally clear the displayed products as well
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Navbar */}
-      <Navbar />
-
-      <div className="flex flex-1">
-        {/* Sidebar */}
+    <div className="flex min-h-screen">
+      {/* Sidebar */}
+      <div className="w-64 bg-gray-800 text-white">
         <Sidebar />
+      </div>
 
-        {/* Main Content */}
-        <div className="ml-64 p-8 w-full flex justify-center items-center">
-          {/* Centered Box */}
-          <div className="bg-white p-8 rounded-md shadow-md w-full max-w-4xl">
-            <h2 className="text-2xl font-bold mb-6">Search Products/Services</h2>
-            <form onSubmit={handleSearch} className="space-y-4">
-              <input
-                type="text"
-                placeholder="Enter Product/Service Name"
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={productDetails}
-                onChange={(e) => setProductDetails(e.target.value)}
-              />
-              <button
-                type="submit"
-                className="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
-              >
-                {loading ? 'Searching...' : 'Search'}
-              </button>
-            </form>
+      <div className="flex-1 p-8 bg-gray-50">
+        {/* Navbar */}
+        <div className="sticky top-0 z-10">
+          <Navbar />
+        </div>
 
-            <div className="mt-6">
-              {loading && <p>Loading...</p>}
+        {/* Content starts after Navbar */}
+        <div className="mt-16"> {/* Adds margin to start the content after Navbar */}
+          <h1 className="text-3xl font-bold mb-6 text-blue-600 text-center">Search Products</h1>
 
-              {results.length > 0 ? (
-                <table className="min-w-full table-auto mt-4">
-                  <thead>
-                    <tr className="bg-gray-200">
-                      <th className="px-4 py-3 text-left">Product Name</th>
-                      <th className="px-4 py-3 text-left">Vendor</th>
-                      <th className="px-4 py-3 text-left">Price</th>
-                      <th className="px-4 py-3 text-left">Vendor Reliability</th>
-                      <th className="px-4 py-3 text-left">Recommended</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((item, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="px-4 py-3">{item.name}</td>
-                        <td className="px-4 py-3">{item.vendor}</td>
-                        <td className="px-4 py-3">₹{item.price}</td>
-                        <td className="px-4 py-3">{item.vendorReliability}</td>
-                        <td
-                          className={`px-4 py-3 ${
-                            item.recommended ? 'text-green-500' : 'text-red-500'
-                          }`}
-                        >
-                          {item.recommended ? 'Recommended' : 'Not Recommended'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p>No results found.</p>
-              )}
-            </div>
+          {/* Centered Search Box and Buttons */}
+          <div className="flex flex-col justify-center items-center mb-6">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search Products"
+              className="border border-blue-300 rounded p-3 mb-4 w-80 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+            
+            {/* Search Button */}
+            <button
+              onClick={handleSearchClick}
+              disabled={loading}
+              className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 mb-4"
+            >
+              {loading ? 'Searching...' : 'Search'}
+            </button>
+            
+            {/* Clear Button */}
+            {/* <button
+              onClick={handleClearSearch}
+              className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
+            >
+              Clear Search
+            </button> */}
           </div>
+
+          {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
+
+          {/* Display data in tabular format */}
+          {data && Array.isArray(data.products) && data.products.length > 0 ? (
+            <table className="table-auto w-full border-collapse border border-gray-300 mt-8 bg-white shadow-md rounded-md">
+              <thead className="bg-blue-100">
+                <tr>
+                  <th className="px-6 py-4 border border-gray-300 text-left text-gray-700">Product Name</th>
+                  <th className="px-6 py-4 border border-gray-300 text-left text-gray-700">Description</th>
+                  <th className="px-6 py-4 border border-gray-300 text-left text-gray-700">Price</th>
+                  <th className="px-6 py-4 border border-gray-300 text-left text-gray-700">Ratings</th>
+                  <th className="px-6 py-4 border border-gray-300 text-left text-gray-700">Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.products.map((product, index) => (
+                  <tr key={index} className="hover:bg-blue-50">
+                    <td className="px-6 py-4 border border-gray-300">{product.title}</td>
+                    <td className="px-6 py-4 border border-gray-300">{product.description}</td>
+                    <td className="px-6 py-4 border border-gray-300">{product.price}</td>
+                    <td className="px-6 py-4 border border-gray-300">{product.ratings}</td>
+                    <td className="px-6 py-4 border border-gray-300">
+                      <a href={product.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        View Product
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="mt-4 text-gray-600 text-center">No products available.</p>
+          )}
         </div>
       </div>
     </div>
