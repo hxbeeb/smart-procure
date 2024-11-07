@@ -19,7 +19,7 @@ const QueryPage = () => {
     try {
       // Scrape data first
       const searchUrl = `http://localhost:5000/scrape?search=${encodeURIComponent(searchQuery)}`;
-      // const searchUrl = `https://smart-procure.onrender.com:5000/scrape?search=${encodeURIComponent(searchQuery)}`;
+      // const searchUrl = `https://smart-procure.onrender.com/scrape?search=${encodeURIComponent(searchQuery)}`;
       const scrapeResponse = await fetch(searchUrl);
       if (!scrapeResponse.ok) {
         throw new Error('Failed to fetch scraped data');
