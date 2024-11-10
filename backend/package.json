@@ -4,8 +4,8 @@
   "main": "scrapper.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "install": "apt-get update && apt-get install -y wget --no-install-recommends && rm -rf /var/lib/apt/lists/*"
+    "start": "node scrapper.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
