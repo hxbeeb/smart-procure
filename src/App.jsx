@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import QueryPage from './pages/QueryPage';
 import Dashboard from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
+import Block from './components/Block';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/" element={<LoginPage/>} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/search" element={<QueryPage />} />
+            <Route path="/block" element={<Block />} />
           </Routes>
         </div>
       </div>

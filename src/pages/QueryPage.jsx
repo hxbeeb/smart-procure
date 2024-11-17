@@ -1,36 +1,94 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
 
 const QueryPage = () => {
   const [data, setData] = useState({ products: [] });
+  const [benchmarks, setBenchmarks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
 
+  // Fetch Benchmarks
+  const fetchBenchmarks = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/get_chain");
+      if (!response.ok) throw new Error("Failed to fetch benchmarks");
+      const data = await response.json();
+      console.log(data);
+      setBenchmarks(data || []);
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchBenchmarks();
+  }, []);
+
   const handleSearchChange = (event) => {
     setSearchQuery(event.target.value);
   };
-
   const handleSearchClick = async () => {
     setLoading(true);
     setError(null);
-
+  
     try {
-      const searchUrl = `http://localhost:5000/scrape?search=${encodeURIComponent(
-        searchQuery
-      )}`;
+      const searchUrl = `http://localhost:5000/scrape?search=${encodeURIComponent(searchQuery)}`;
       const scrapeResponse = await fetch(searchUrl);
-      if (!scrapeResponse.ok) {
-        throw new Error("Failed to fetch scraped data");
-      }
+  
+      if (!scrapeResponse.ok) throw new Error("Failed to fetch scraped data");
+  
       const scrapeData = await scrapeResponse.json();
-      const filteredData = scrapeData.products.filter(
-        (product) =>
-          !product.title.toLowerCase().includes("shop on ebay".toLowerCase())
-      );
-
+  
+      const filteredData = scrapeData.products.filter((product) => {
+        // Ensure the product is not from eBay
+        const isNotEbay = !product.title.toLowerCase().includes("shop on ebay");
+        let benchPrice = 10;  // Default benchmark price
+        let price = 0;  // Initialize price variable
+        
+        // Find the matching benchmark
+        const laptopBenchmark = benchmarks.find((benchmark) => {
+          if (benchmark.data.product) {
+            // Match the benchmark product with the product title
+            if (product.title.toLowerCase().includes(benchmark.data.product.toLowerCase())) {
+              // Update benchmark price
+              benchPrice = parseFloat(benchmark.data.price);
+        
+              if (isNaN(benchPrice)) {
+                console.error('Invalid benchmark price:', benchmark.data.price);
+                return false;
+              }
+        
+              // Parse product price
+              let cleanedPrice = product.price.replace('$', '').replace(',', '');
+              price = parseFloat(cleanedPrice);
+        
+              // If the product price parsing fails, set it to 0
+              if (isNaN(price)) {
+                console.error('Failed to parse product price:', product.price);
+                price = 0; // Fallback if parsing fails
+              }
+        
+              return true;
+            }
+          }
+          return false;
+        });
+        
+        // Check if the benchmark is found, and the price is greater than the benchmark
+        // if (!laptopBenchmark || price <= benchPrice) {
+        //   return isNotEbay; // Only exclude eBay products
+        // }
+        
+  
+        
+        // Return if the price is valid and less than benchmark
+        return isNotEbay && price <= benchPrice;
+        
+      });
+  
       setData({ products: filteredData });
     } catch (error) {
       setError(error.message);
@@ -38,7 +96,7 @@ const QueryPage = () => {
       setLoading(false);
     }
   };
-
+  
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     setSelectedImage(file);
@@ -94,42 +152,58 @@ const QueryPage = () => {
             Search Products
           </h1>
 
-          {/* Search Box with Camera Icon */}
+          {/* Benchmark Summary */}
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-4">Current Benchmarks</h2>
+            {benchmarks.length > 0 ? (
+              <ul className="list-disc list-inside">
+                {benchmarks.map((benchmark, index) => (
+                  <li key={index} className="text-gray-700">
+                    {benchmark.product} - Max Price: ${benchmark.price}, Min
+                    Ratings: {benchmark.ratings}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500">No benchmarks available.</p>
+            )}
+          </div>
+
+          {/* Search Box */}
           <div className="flex flex-col items-center mb-6">
-  <div className="relative w-80 shadow-lg rounded-full overflow-hidden">
-    <input
-      type="text"
-      value={searchQuery}
-      onChange={handleSearchChange}
-      placeholder="Search Products"
-      className="w-full p-3 pl-12 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400"
-    />
+            <div className="relative w-80 shadow-lg rounded-full overflow-hidden">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                placeholder="Search Products"
+                className="w-full p-3 pl-12 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
 
-    {/* Camera Icon inside Search Box */}
-    <div className="absolute top-1/2 left-3 transform -translate-y-1/2 cursor-pointer">
-      <i className="fas fa-camera text-gray-500"></i>
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => {
-          handleImageUpload(e);
-          if (searchQuery.trim() === "") handleImageSearch();
-        }}
-        className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
-      />
-    </div>
-  </div>
+              {/* Camera Icon */}
+              <div className="absolute top-1/2 left-3 transform -translate-y-1/2 cursor-pointer">
+                <i className="fas fa-camera text-gray-500"></i>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    handleImageUpload(e);
+                    if (searchQuery.trim() === "") handleImageSearch();
+                  }}
+                  className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </div>
+            </div>
 
-  {/* Search Button */}
-  <button
-    onClick={handleSearchClick}
-    disabled={loading}
-    className="mt-4 bg-gradient-to-r from-blue-500 to-blue-700 text-white px-6 py-3 rounded-full hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
-  >
-    {loading ? "Searching..." : "Search"}
-  </button>
-</div>
-
+            {/* Search Button */}
+            <button
+              onClick={handleSearchClick}
+              disabled={loading}
+              className="mt-4 bg-gradient-to-r from-blue-500 to-blue-700 text-white px-6 py-3 rounded-full hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              {loading ? "Searching..." : "Search"}
+            </button>
+          </div>
 
           {error && <p className="text-red-500 mt-4 text-center">{error}</p>}
 
@@ -156,32 +230,45 @@ const QueryPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {data.products.map((product, index) => (
-                  <tr key={index} className="hover:bg-blue-50">
-                    <td className="px-6 py-4 border border-gray-300">
-                      {product.title}
-                    </td>
-                    <td className="px-6 py-4 border border-gray-300">
-                      {product.description}
-                    </td>
-                    <td className="px-6 py-4 border border-gray-300">
-                      {product.price}
-                    </td>
-                    <td className="px-6 py-4 border border-gray-300">
-                      {product.ratings}
-                    </td>
-                    <td className="px-6 py-4 border border-gray-300">
-                      <a
-                        href={product.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        View Product
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                {data.products.map((product, index) => {
+                  // const isBenchmarked = benchmarks.some(
+                  //   (benchmark) =>
+                  //     product.price <= benchmark.price &&
+                  //     product.ratings >= benchmark.ratings
+                  // );
+
+                  return (
+                    <tr
+                      key={index}
+                      // className={`hover:bg-blue-50 ${
+                      //   isBenchmarked ? "bg-green-50" : ""
+                      // }`}
+                    >
+                      <td className="px-6 py-4 border border-gray-300">
+                        {product.title}
+                      </td>
+                      <td className="px-6 py-4 border border-gray-300">
+                        {product.description}
+                      </td>
+                      <td className="px-6 py-4 border border-gray-300">
+                        {product.price}
+                      </td>
+                      <td className="px-6 py-4 border border-gray-300">
+                        {product.ratings}
+                      </td>
+                      <td className="px-6 py-4 border border-gray-300">
+                        <a
+                          href={product.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          View Product
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : (

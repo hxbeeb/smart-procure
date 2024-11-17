@@ -24,6 +24,12 @@ const Navbar = () => {
           >
             Search
           </Link>
+          <Link 
+            to="/block" 
+            className="text-lg font-medium transition-colors duration-300 ease-in-out hover:text-yellow-300 hover:underline hover:underline-offset-4 transform hover:scale-110"
+          >
+            Benchnmark
+          </Link>
         </div>
       </div>
     </nav>
