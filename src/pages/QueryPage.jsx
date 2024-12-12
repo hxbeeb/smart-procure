@@ -42,54 +42,56 @@ const QueryPage = () => {
   
       const scrapeData = await scrapeResponse.json();
   
-      const filteredData = scrapeData.products.filter((product) => {
-        // Ensure the product is not from eBay
-        const isNotEbay = !product.title.toLowerCase().includes("shop on ebay");
-        let benchPrice = 10;  // Default benchmark price
-        let price = 0;  // Initialize price variable
-        
-        // Find the matching benchmark
-        const laptopBenchmark = benchmarks.find((benchmark) => {
-          if (benchmark.data.product) {
-            // Match the benchmark product with the product title
-            if (product.title.toLowerCase().includes(benchmark.data.product.toLowerCase())) {
-              // Update benchmark price
-              benchPrice = parseFloat(benchmark.data.price);
-        
-              if (isNaN(benchPrice)) {
-                console.error('Invalid benchmark price:', benchmark.data.price);
-                return false;
-              }
-        
-              // Parse product price
-              let cleanedPrice = product.price.replace('$', '').replace(',', '');
-              price = parseFloat(cleanedPrice);
-        
-              // If the product price parsing fails, set it to 0
-              if (isNaN(price)) {
-                console.error('Failed to parse product price:', product.price);
-                price = 0; // Fallback if parsing fails
-              }
-        
-              return true;
-            }
-          }
+                    const filteredData = scrapeData.products.filter((product) => {
+  // Ensure the product is not from eBay
+ 
+  // const isNotEbay = parseFloat(product.price.replace('$', '').replace(',', '').trim()) < 100;
+
+  let benchPrice =null;  // Default benchmark price
+  let price = 0;  // Initialize price variable
+
+  // Find the matching benchmark
+  const laptopBenchmark = benchmarks.find((benchmark) => {
+    if (benchmark.data.product) {
+      if (product.title.toLowerCase().includes(benchmark.data.product.toLowerCase())) {
+        benchPrice = parseFloat(benchmark.data.price);
+
+        if (isNaN(benchPrice)) {
+          console.error('Invalid benchmark price:', benchmark.data.price);
           return false;
-        });
-        
-        // Check if the benchmark is found, and the price is greater than the benchmark
-        // if (!laptopBenchmark || price <= benchPrice) {
-        //   return isNotEbay; // Only exclude eBay products
-        // }
-        
-  
-        
-        // Return if the price is valid and less than benchmark
-        return isNotEbay && price <= benchPrice;
-        
-      });
-  
-      setData({ products: filteredData });
+        }
+
+        // Parse the product price
+        let cleanedPrice = product.price.replace('$', '').replace(',', '').trim();
+        price = parseFloat(cleanedPrice);
+
+        if (isNaN(price)) {
+          console.error('Failed to parse product price:', product.price);
+          price = 0; // Set to 0 if parsing fails
+        }
+
+        return true;
+      }
+    }
+    return false;
+  });
+
+  // Debug the values
+  console.log(`Title: ${product.title}, Price: ${price}, Benchmark: ${benchPrice}`);
+
+  // Skip products without a valid benchmark
+  if (benchPrice === null) {
+    console.warn('No benchmark found for product:', product.title);
+    return !product.title.toLowerCase().includes("shop on ebay");
+  }
+  const isNotEbay = !product.title.toLowerCase().includes("shop on ebay")&&parseFloat(product.price.replace('$', '').replace(',', '').trim())<=benchPrice;
+  // Return if the price is valid and less than benchmark
+  return isNotEbay;
+});
+
+// Update state with the filtered data
+setData({ products: filteredData });
+
     } catch (error) {
       setError(error.message);
     } finally {

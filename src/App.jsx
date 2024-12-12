@@ -6,23 +6,31 @@ import QueryPage from './pages/QueryPage';
 import Dashboard from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import Block from './components/Block';
-
+import QueryMake from './pages/querymake';
+import { AuthProvider } from './components/AuthContext';
+import PrivateRoute from './components/PrivateRoute';
+import Register from './components/Register';
+import Login from './components/Login';
+import ProductPage from './pages/ProductPage';
 function App() {
   return (
-    <Router>
-      <div className="flex min-h-screen">
+    <AuthProvider>
+      <Router>
+        <Navbar />
         {/* <Sidebar /> */}
-        <div className="flex-1">
-          {/* <Navbar /> */}
-          <Routes>
-          <Route path="/" element={<LoginPage/>} />
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route element={<PrivateRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/search" element={<QueryPage />} />
             <Route path="/block" element={<Block />} />
-          </Routes>
-        </div>
-      </div>
-    </Router>
+            <Route path="/querymake" element={<QueryMake />} />
+            <Route path="/product/:productName" element={<ProductPage />} />
+          </Route>
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

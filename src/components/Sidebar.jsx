@@ -9,8 +9,9 @@ const Sidebar = () => {
         <li>
           <Link
             to="/dashboard"
-            className="block py-2 px-4 text-white hover:bg-blue-600 rounded-lg transition-colors">
-            Dashboard 
+            className="block py-2 px-4 text-white hover:bg-blue-600 rounded-lg transition-colors"
+          >
+            Dashboard
           </Link>
         </li>
         <li>
